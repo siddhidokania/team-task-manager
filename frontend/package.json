@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host --port 4173",
-    "lint": "eslint ."
+    "serve": "npx serve dist --listen 4173"
     
   },
   "dependencies": {
