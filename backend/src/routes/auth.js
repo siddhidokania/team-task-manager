@@ -3,39 +3,53 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
-const auth = require('../middleware/auth');
 
 router.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ message: 'All fields required' });
-    const existing = db.prepare('SELECT id FROM users WHERE email=?').get(email);
+    if (!name || !email || !password)
+      return res.status(400).json({ message: 'All fields required' });
+
+    const existing = await db.get_one('SELECT id FROM users WHERE email=?', [email]);
     if (existing) return res.status(400).json({ message: 'Email already registered' });
+
     const hashed = await bcrypt.hash(password, 10);
-    const result = db.prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)').run(name, email, hashed);
-    const user = { id: result.lastInsertRowid, name, email };
-    const token = jwt.sign({ id: user.id, email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const result = await db.run_query(
+      'INSERT INTO users (name, email, password) VALUES (?,?,?)',
+      [name, email, hashed]
+    );
+
+    const user = { id: result.id, name, email };
+    const token = jwt.sign({ id: result.id, email }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+    const user = await db.get_one('SELECT * FROM users WHERE email=?', [email]);
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: 'Invalid credentials' });
+
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-router.get('/me', auth, (req, res) => {
+router.get('/me', require('../middleware/auth'), async (req, res) => {
   try {
-    const user = db.prepare('SELECT id, name, email FROM users WHERE id=?').get(req.user.id);
+    const user = await db.get_one('SELECT id, name, email FROM users WHERE id=?', [req.user.id]);
     res.json(user);
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;
