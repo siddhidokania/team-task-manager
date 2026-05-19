@@ -94,3 +94,10 @@ button { cursor: pointer; border: none; border-radius: 8px; padding: 0.6rem 1.2r
   .tasks-board { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+input, select, textarea {
+  font-size: 16px !important;
+  color: #1a1a2e !important;
+  background: white !important;
+  pointer-events: all !important;
+}
