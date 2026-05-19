@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { run_query, get_all, get_one } = require('../db'); const db = { run_query, get_all, get_one };
 const auth = require('../middleware/auth');
 
 router.get('/:projectId', auth, async (req, res) => {
